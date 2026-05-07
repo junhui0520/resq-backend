@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'core/user_session.dart';
 import 'pages/home/home_page.dart';
 import 'pages/alerts/alerts_page.dart';
 import 'pages/embassy/embassy_page.dart';
 import 'pages/settings/settings_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await UserSession.init(); // device_uuid 생성 + 서버 등록
   runApp(const ResQApp());
 }
 
