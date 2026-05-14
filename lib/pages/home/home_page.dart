@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../qr/qr_result_page.dart';
+import '../myinfo/myinfo.dart';
+import '../home/safetyguide.dart';
+import '../home/call119.dart';
 
 const Color kNavy = Color(0xFF1B2F6E);
 const Color kNavyLight = Color(0xFF243580);
@@ -31,17 +33,19 @@ class HomePage extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (_) => const QrResultPage()),
               ),
-              icon: const Icon(Icons.qr_code_2, color: Colors.white, size: 18),
               label: const Text(
-                'My QR',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                'My Info',
+                style: TextStyle(color: Colors.yellow, fontSize: 13),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.white38),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
               ),
             ),
           ),
@@ -172,7 +176,10 @@ class _EmergencyCallCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const Call119Screen()),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
@@ -211,10 +218,7 @@ class _EmergencyCallCard extends StatelessWidget {
                     SizedBox(height: 3),
                     Text(
                       'Fire, ambulance, rescue',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
                 ),
@@ -238,7 +242,10 @@ class _SafetyGuideCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SafetyGuideScreen()),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
@@ -250,11 +257,7 @@ class _SafetyGuideCard extends StatelessWidget {
                   color: const Color(0xFFEEF0FB),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.menu,
-                  color: kNavy,
-                  size: 22,
-                ),
+                child: const Icon(Icons.menu, color: kNavy, size: 22),
               ),
               const SizedBox(width: 14),
               const Expanded(
@@ -272,10 +275,7 @@ class _SafetyGuideCard extends StatelessWidget {
                     SizedBox(height: 3),
                     Text(
                       'Earthquake, rain, fire tips',
-                      style: TextStyle(
-                        color: Color(0xFF718096),
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Color(0xFF718096), fontSize: 13),
                     ),
                   ],
                 ),
@@ -312,9 +312,7 @@ class _AlertCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border(
-          left: BorderSide(color: borderColor, width: 4),
-        ),
+        border: Border(left: BorderSide(color: borderColor, width: 4)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -348,7 +346,10 @@ class _AlertCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: tagColor,
                     borderRadius: BorderRadius.circular(6),
