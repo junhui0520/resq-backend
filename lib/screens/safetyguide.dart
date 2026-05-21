@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/language_provider.dart';
 
 class SafetyGuideScreen extends StatefulWidget {
   const SafetyGuideScreen({super.key});
@@ -8,7 +10,6 @@ class SafetyGuideScreen extends StatefulWidget {
 }
 
 class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
-  // 각 카테고리 펼침/접힘 상태
   final Map<String, bool> _expanded = {
     'earthquake': true,
     'rain': true,
@@ -17,6 +18,8 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFf0f4f8),
       body: Column(
@@ -36,9 +39,9 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
                           color: Colors.white70, size: 22),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Safety guide',
-                      style: TextStyle(
+                    Text(
+                      lang.t('guide_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -47,11 +50,11 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Padding(
-                  padding: EdgeInsets.only(left: 28),
+                Padding(
+                  padding: const EdgeInsets.only(left: 28),
                   child: Text(
-                    'Earthquake · Rain · Fire',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                    lang.t('guide_subtitle'),
+                    style: const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                 ),
               ],
@@ -66,7 +69,7 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
                 children: [
                   _GuideCategory(
                     id: 'earthquake',
-                    title: 'Earthquake',
+                    title: lang.t('guide_earthquake'),
                     headerBg: const Color(0xFFf5f3ff),
                     iconBg: const Color(0xFFede9fe),
                     titleColor: const Color(0xFF4c1d95),
@@ -77,19 +80,19 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
                     isExpanded: _expanded['earthquake']!,
                     onToggle: () => setState(
                         () => _expanded['earthquake'] = !_expanded['earthquake']!),
-                    tips: const [
-                      ('Drop, cover, hold', 'get under a sturdy table, protect your head'),
-                      ('Stay away', 'from windows and heavy furniture'),
-                      ('No elevators', 'use stairs after shaking stops'),
-                      ('Check gas leaks', 'before turning on lights after shaking'),
-                      ('Move to open ground', 'away from buildings'),
+                    tips: [
+                      (lang.t('eq_tip1'), lang.t('eq_tip1_sub')),
+                      (lang.t('eq_tip2'), lang.t('eq_tip2_sub')),
+                      (lang.t('eq_tip3'), lang.t('eq_tip3_sub')),
+                      (lang.t('eq_tip4'), lang.t('eq_tip4_sub')),
+                      (lang.t('eq_tip5'), lang.t('eq_tip5_sub')),
                     ],
                   ),
                   const SizedBox(height: 8),
 
                   _GuideCategory(
                     id: 'rain',
-                    title: 'Heavy rain',
+                    title: lang.t('guide_rain'),
                     headerBg: const Color(0xFFeff6ff),
                     iconBg: const Color(0xFFdbeafe),
                     titleColor: const Color(0xFF1e3a8a),
@@ -100,18 +103,18 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
                     isExpanded: _expanded['rain']!,
                     onToggle: () => setState(
                         () => _expanded['rain'] = !_expanded['rain']!),
-                    tips: const [
-                      ('Avoid low-lying areas', 'underpasses and riversides'),
-                      ('Do not cross', 'flooded roads or streams'),
-                      ('Move valuables up', 'to higher floors if flooding is likely'),
-                      ('Follow alerts', 'monitor SafeKorea and evacuation orders'),
+                    tips: [
+                      (lang.t('rain_tip1'), lang.t('rain_tip1_sub')),
+                      (lang.t('rain_tip2'), lang.t('rain_tip2_sub')),
+                      (lang.t('rain_tip3'), lang.t('rain_tip3_sub')),
+                      (lang.t('rain_tip4'), lang.t('rain_tip4_sub')),
                     ],
                   ),
                   const SizedBox(height: 8),
 
                   _GuideCategory(
                     id: 'fire',
-                    title: 'Fire',
+                    title: lang.t('guide_fire'),
                     headerBg: const Color(0xFFfff1f2),
                     iconBg: const Color(0xFFffe4e6),
                     titleColor: const Color(0xFF7f1d1d),
@@ -122,11 +125,11 @@ class _SafetyGuideScreenState extends State<SafetyGuideScreen> {
                     isExpanded: _expanded['fire']!,
                     onToggle: () => setState(
                         () => _expanded['fire'] = !_expanded['fire']!),
-                    tips: const [
-                      ('Call 119 immediately', 'do not try to fight a large fire'),
-                      ('Crawl low under smoke', 'stay below the smoke line'),
-                      ('Close doors', 'slow fire spread; do not use elevators'),
-                      ('Assembly point', 'gather at the designated spot outside'),
+                    tips: [
+                      (lang.t('fire_tip1'), lang.t('fire_tip1_sub')),
+                      (lang.t('fire_tip2'), lang.t('fire_tip2_sub')),
+                      (lang.t('fire_tip3'), lang.t('fire_tip3_sub')),
+                      (lang.t('fire_tip4'), lang.t('fire_tip4_sub')),
                     ],
                   ),
                 ],
@@ -251,8 +254,7 @@ class _GuideCategory extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: i < tips.length - 1
                           ? const Border(
-                              bottom:
-                                  BorderSide(color: Color(0xFFf1f5f9)))
+                              bottom: BorderSide(color: Color(0xFFf1f5f9)))
                           : null,
                     ),
                     padding: const EdgeInsets.fromLTRB(30, 8, 12, 8),

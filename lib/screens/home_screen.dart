@@ -6,7 +6,8 @@ import '../../providers/language_provider.dart';
 import '../../core/user_session.dart';
 import 'qr_result_screen.dart';
 import '../../core/api_client.dart';
-
+import '../screens/call119.dart';
+import '../screens/safetyguide.dart';
 
 const Color kNavy = Color(0xFF1B2F6E);
 
@@ -92,10 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final lang = context.read<LanguageProvider>().currentLang;
       final uri = Uri.parse('$_baseUrl/alerts').replace(
-        queryParameters: {
-          'lang': lang,
-          'device_uuid': UserSession.deviceUuid,
-        },
+        queryParameters: {'lang': lang, 'device_uuid': UserSession.deviceUuid},
       );
 
       final response = await http.get(uri).timeout(const Duration(seconds: 8));
@@ -158,7 +156,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
               ),
             ),
           ),
@@ -200,10 +201,12 @@ class _HomeScreenState extends State<HomeScreen> {
             else if (_recentAlerts.isEmpty)
               _EmptyAlerts(lang: lang)
             else
-              ..._recentAlerts.map((alert) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _AlertCard(alert: alert),
-                  )),
+              ..._recentAlerts.map(
+                (alert) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _AlertCard(alert: alert),
+                ),
+              ),
           ],
         ),
       ),
@@ -361,7 +364,10 @@ class _EmergencyCallCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const Call119Screen()),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
@@ -429,7 +435,10 @@ class _SafetyGuideCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SafetyGuideScreen()),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
@@ -487,9 +496,7 @@ class _AlertCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border(
-          left: BorderSide(color: alert.color, width: 4),
-        ),
+        border: Border(left: BorderSide(color: alert.color, width: 4)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -524,7 +531,9 @@ class _AlertCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: alert.color,
                     borderRadius: BorderRadius.circular(6),

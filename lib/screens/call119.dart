@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../providers/language_provider.dart';
 
 class Call119Screen extends StatelessWidget {
   const Call119Screen({super.key});
@@ -13,6 +15,8 @@ class Call119Screen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFf0f4f8),
       body: Column(
@@ -32,9 +36,9 @@ class Call119Screen extends StatelessWidget {
                           color: Colors.white70, size: 22),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Emergency Call',
-                      style: TextStyle(
+                    Text(
+                      lang.t('call_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -43,11 +47,12 @@ class Call119Screen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Padding(
-                  padding: EdgeInsets.only(left: 28),
+                Padding(
+                  padding: const EdgeInsets.only(left: 28),
                   child: Text(
-                    'Korea emergency services',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                    lang.t('call_subtitle'),
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                 ),
               ],
@@ -70,9 +75,9 @@ class Call119Screen extends StatelessWidget {
                       color: const Color(0xFFdc2626),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
-                        Text(
+                        const Text(
                           '119',
                           style: TextStyle(
                             color: Colors.white,
@@ -81,10 +86,10 @@ class Call119Screen extends StatelessWidget {
                             letterSpacing: 4,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Fire · Ambulance · Rescue',
-                          style: TextStyle(
+                          lang.t('call_119_desc'),
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
                           ),
@@ -105,15 +110,15 @@ class Call119Screen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFFe2e8f0)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.phone,
+                          const Icon(Icons.phone,
                               color: Color(0xFFdc2626), size: 18),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
-                            'Tap to call 119',
-                            style: TextStyle(
+                            lang.t('tap_to_call'),
+                            style: const TextStyle(
                               color: Color(0xFFdc2626),
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -125,9 +130,9 @@ class Call119Screen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  const Text(
-                    'OTHER EMERGENCY NUMBERS',
-                    style: TextStyle(
+                  Text(
+                    lang.t('other_numbers'),
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1a2744),
@@ -141,8 +146,8 @@ class Call119Screen extends StatelessWidget {
                     iconBg: const Color(0xFFeff6ff),
                     icon: Icons.local_police_outlined,
                     iconColor: const Color(0xFF2563eb),
-                    title: '112 — Police',
-                    subtitle: 'Crime, assault, theft',
+                    title: lang.t('police_112'),
+                    subtitle: lang.t('police_112_sub'),
                     onTap: () => _call('112'),
                   ),
                   const SizedBox(height: 8),
@@ -152,8 +157,8 @@ class Call119Screen extends StatelessWidget {
                     iconBg: const Color(0xFFf0fdf4),
                     icon: Icons.medical_services_outlined,
                     iconColor: const Color(0xFF16a34a),
-                    title: '1339 — Medical hotline',
-                    subtitle: '24h health consultation',
+                    title: lang.t('medical_1339'),
+                    subtitle: lang.t('medical_1339_sub'),
                     onTap: () => _call('1339'),
                   ),
                   const SizedBox(height: 8),
@@ -163,11 +168,9 @@ class Call119Screen extends StatelessWidget {
                     iconBg: const Color(0xFFfff7ed),
                     icon: Icons.local_hospital_outlined,
                     iconColor: const Color(0xFFea580c),
-                    title: 'Nearby hospitals',
-                    subtitle: 'Open ER map',
-                    onTap: () {
-                      // 지도 화면으로 이동
-                    },
+                    title: lang.t('nearby_hospitals'),
+                    subtitle: lang.t('nearby_hospitals_sub'),
+                    onTap: () {},
                   ),
                   const SizedBox(height: 16),
 
@@ -180,21 +183,21 @@ class Call119Screen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFFfde68a)),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'TIP — When calling 119',
-                          style: TextStyle(
+                          lang.t('call_tip_title'),
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF92400e),
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Say your location first · Stay calm · Keep the line open until help arrives',
-                          style: TextStyle(
+                          lang.t('call_tip_body'),
+                          style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFF78350f),
                             height: 1.5,
