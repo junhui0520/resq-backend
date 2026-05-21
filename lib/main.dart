@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';          // 🆕
 import 'core/user_session.dart';
-import 'pages/home/home_page.dart';
+import 'screens/home_screen.dart';
 import 'pages/alerts/alerts_page.dart';
 import 'pages/embassy/embassy_page.dart';
 import 'pages/settings/settings_page.dart';
+import 'providers/language_provider.dart';         // 🆕
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await UserSession.init(); // device_uuid 생성 + 서버 등록
-  runApp(const ResQApp());
+  await UserSession.init();
+
+  // 🆕 저장된 언어 미리 로드
+  final langProvider = LanguageProvider();
+  await langProvider.init();
+
+  runApp(
+    ChangeNotifierProvider.value(                  // 🆕
+      value: langProvider,
+      child: const ResQApp(),
+    ),
+  );
 }
 
 class ResQApp extends StatelessWidget {
@@ -41,7 +53,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
 
   static const List<Widget> _pages = [
-    HomePage(),
+    HomeScreen(),
     AlertsPage(),
     EmbassyPage(),
     SettingsPage(),
@@ -49,6 +61,9 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    // 🆕 BottomNav 라벨도 번역 적용하려면 watch 추가
+    final lang = context.watch<LanguageProvider>();
+
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -60,23 +75,23 @@ class _MainScaffoldState extends State<MainScaffold> {
         selectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home'),
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: lang.t('nav_home')),           // 🆕 번역
           BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_outlined),
-              activeIcon: Icon(Icons.notifications),
-              label: 'Alerts'),
+              icon: const Icon(Icons.notifications_outlined),
+              activeIcon: const Icon(Icons.notifications),
+              label: lang.t('nav_alerts')),          // 🆕 번역
           BottomNavigationBarItem(
-              icon: Icon(Icons.business_outlined),
-              activeIcon: Icon(Icons.business),
-              label: 'Embassy'),
+              icon: const Icon(Icons.business_outlined),
+              activeIcon: const Icon(Icons.business),
+              label: lang.t('nav_embassy')),         // 🆕 번역
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'Settings'),
+              icon: const Icon(Icons.settings_outlined),
+              activeIcon: const Icon(Icons.settings),
+              label: lang.t('nav_settings')),        // 🆕 번역
         ],
       ),
     );
