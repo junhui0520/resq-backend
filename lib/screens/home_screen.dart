@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../providers/language_provider.dart';
 import '../../core/user_session.dart';
-import 'qr_result_screen.dart';
 import '../../core/api_client.dart';
+import 'qr_result_screen.dart';
 import '../screens/call119.dart';
 import '../screens/safetyguide.dart';
 
@@ -52,6 +50,7 @@ class AlertModel {
     }
   }
 
+  // issued_at 기준 상대 시간
   String get timeAgo {
     try {
       final dt = DateTime.parse(issuedAt);
@@ -62,6 +61,28 @@ class AlertModel {
       return '${diff.inDays} days ago';
     } catch (_) {
       return '';
+    }
+  }
+
+  // issued_at 기준 HH:mm 표시
+  String get issuedTime {
+    try {
+      final dt = DateTime.parse(issuedAt);
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  // 3일 이내 알람인지 체크
+  bool get isWithin3Days {
+    try {
+      final dt = DateTime.parse(issuedAt);
+      return DateTime.now().difference(dt).inDays < 3;
+    } catch (_) {
+      return false;
     }
   }
 }
@@ -75,12 +96,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const String _baseUrl = 'http://localhost:3000/api';
-
   List<AlertModel> _recentAlerts = [];
-  bool _hasActiveAlert = false;
-  AlertModel? _activeAlert;
+  bool _hasDangerAlert = false;   // 3일 이내 알람 여부
+  AlertModel? _dangerAlert;       // 상단 표시용 최신 알람
   bool _isLoading = true;
+  String _lastLang = '';
 
   @override
   void initState() {
@@ -88,33 +108,42 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchAlerts();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentLang = context.read<LanguageProvider>().currentLang;
+    if (_lastLang != currentLang) {
+      _lastLang = currentLang;
+      _fetchAlerts();
+    }
+  }
+
   Future<void> _fetchAlerts() async {
     setState(() => _isLoading = true);
     try {
-      final lang = context.read<LanguageProvider>().currentLang;
-      final uri = Uri.parse('$_baseUrl/alerts').replace(
-        queryParameters: {'lang': lang, 'device_uuid': UserSession.deviceUuid},
+      final data = await ApiClient.get(
+        '/alerts',
+         queryParams: {
+          'lang': context.read<LanguageProvider>().currentLang,
+          'device_uuid': UserSession.deviceUuid ?? '',
+        },
       );
 
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      final List raw = data['alerts'] ?? [];
+      final all = raw.map((e) => AlertModel.fromJson(e)).toList();
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List raw = data['alerts'] ?? [];
-        final all = raw.map((e) => AlertModel.fromJson(e)).toList();
+      // issued_at 기준 최신순 정렬
+      all.sort((a, b) => b.issuedAt.compareTo(a.issuedAt));
 
-        final active = all.where((a) => a.status == 'ACTIVE').toList();
-        all.sort((a, b) => b.issuedAt.compareTo(a.issuedAt));
+      // 3일 이내 알람 필터
+      final recent3Days = all.where((a) => a.isWithin3Days).toList();
 
-        setState(() {
-          _hasActiveAlert = active.isNotEmpty;
-          _activeAlert = active.isNotEmpty ? active.first : null;
-          _recentAlerts = all.take(5).toList();
-          _isLoading = false;
-        });
-      } else {
-        setState(() => _isLoading = false);
-      }
+      setState(() {
+        _hasDangerAlert = recent3Days.isNotEmpty;
+        _dangerAlert = recent3Days.isNotEmpty ? recent3Days.first : null;
+        _recentAlerts = all.take(5).toList(); // 하단 최대 5개
+        _isLoading = false;
+      });
     } catch (_) {
       setState(() => _isLoading = false);
     }
@@ -156,10 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               ),
             ),
           ),
@@ -171,14 +197,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           children: [
-            // 상태 카드
-            _hasActiveAlert && _activeAlert != null
-                ? _DangerCard(alert: _activeAlert!)
-                : _SafeCard(lang: lang),
+            // ── 상단 상태 카드 ──────────────────────────────
+            if (_isLoading)
+              _LoadingCard()
+            else if (_hasDangerAlert && _dangerAlert != null)
+              _DangerCard(alert: _dangerAlert!, lang: lang)
+            else
+              _SafeCard(lang: lang),
 
             const SizedBox(height: 24),
 
-            // Quick Actions
+            // ── Quick Actions ───────────────────────────────
             _SectionLabel(lang.t('quick_actions')),
             const SizedBox(height: 10),
             _EmergencyCallCard(lang: lang),
@@ -187,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 24),
 
-            // Recent Alerts
+            // ── Recent Alerts (최대 5개) ─────────────────────
             _SectionLabel(lang.t('recent_alerts')),
             const SizedBox(height: 10),
 
@@ -204,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ..._recentAlerts.map(
                 (alert) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _AlertCard(alert: alert),
+                  child: _AlertCard(alert: alert, lang: lang),
                 ),
               ),
           ],
@@ -214,20 +243,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Section Label ─────────────────────────────────────────────
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
+// ── Loading Card ──────────────────────────────────────────────
+class _LoadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: kNavy,
-        letterSpacing: 1.2,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8E6C9)),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 24, height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2, color: kNavy),
+        ),
       ),
     );
   }
@@ -296,10 +328,11 @@ class _SafeCard extends StatelessWidget {
   }
 }
 
-// ── Danger Card ───────────────────────────────────────────────
+// ── Danger Card (3일 이내 알람) ───────────────────────────────
 class _DangerCard extends StatelessWidget {
   final AlertModel alert;
-  const _DangerCard({required this.alert});
+  final LanguageProvider lang;
+  const _DangerCard({required this.alert, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -309,14 +342,19 @@ class _DangerCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFEEEE),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE58E8E)),
+        border: Border.all(color: const Color(0xFFE58E8E), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 상단: 빨간 점 + 제목 + 시간
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.circle, color: Color(0xFFC0392B), size: 12),
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Icon(Icons.circle, color: Color(0xFFC0392B), size: 12),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -328,25 +366,84 @@ class _DangerCard extends StatelessWidget {
                   ),
                 ),
               ),
+              Text(
+                alert.issuedTime,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFFB12B2B),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFCFCF),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Active · ${alert.regionName}',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFFB12B2B),
-                fontWeight: FontWeight.w500,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            lang.t('alert_tap_to_translate'),
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF7A2020),
+              height: 1.4,
             ),
           ),
+          const SizedBox(height: 12),
+          // 하단: Active 뱃지 + 지역
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCFCF),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Active · ${alert.regionName}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFB12B2B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 카테고리 태그
+              if (alert.categoryLabel.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: alert.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    alert.categoryLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: alert.color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Section Label ─────────────────────────────────────────────
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: kNavy,
+        letterSpacing: 1.2,
       ),
     );
   }
@@ -373,8 +470,7 @@ class _EmergencyCallCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: Colors.white12,
                   borderRadius: BorderRadius.circular(10),
@@ -444,8 +540,7 @@ class _SafetyGuideCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEEF0FB),
                   borderRadius: BorderRadius.circular(10),
@@ -485,13 +580,16 @@ class _SafetyGuideCard extends StatelessWidget {
   }
 }
 
-// ── Alert Card (API 데이터) ────────────────────────────────────
+// ── Alert Card ────────────────────────────────────────────────
 class _AlertCard extends StatelessWidget {
   final AlertModel alert;
-  const _AlertCard({required this.alert});
+  final LanguageProvider lang;
+  const _AlertCard({required this.alert, required this.lang});
 
   @override
   Widget build(BuildContext context) {
+    final isActive = alert.status == 'ACTIVE';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -530,10 +628,7 @@ class _AlertCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: alert.color,
                     borderRadius: BorderRadius.circular(6),
@@ -548,11 +643,13 @@ class _AlertCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  '${alert.regionName} · ${alert.status == 'ACTIVE' ? 'Active' : 'Resolved'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF718096),
+                Expanded(
+                  child: Text(
+                    '${alert.regionName} · ${isActive ? lang.t('alert_active') : lang.t('alert_resolved')}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF718096),
+                    ),
                   ),
                 ),
               ],

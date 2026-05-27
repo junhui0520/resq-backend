@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/language_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../core/api_client.dart';
+import '../../core/user_session.dart';
 
 const Color kNavy = Color(0xFF1B2F6E);
 
@@ -15,13 +17,58 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _emergencyAlerts = true;
   bool _alertSound = true;
+  bool _isLoadingSettings = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  // ── 서버에서 설정 불러오기 ─────────────────────────────────
+  Future<void> _loadSettings() async {
+    final userId = UserSession.userId;
+    if (userId == null) {
+      setState(() => _isLoadingSettings = false);
+      return;
+    }
+    try {
+      final data = await ApiClient.get('/users/$userId/settings');
+      setState(() {
+        _emergencyAlerts = data['alert_enabled'] ?? true;
+        _alertSound = data['sound_enabled'] ?? true;
+        _isLoadingSettings = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingSettings = false);
+    }
+  }
+
+  // ── 서버에 설정 저장 ───────────────────────────────────────
+  Future<void> _saveSettings({
+    required bool alertEnabled,
+    required bool soundEnabled,
+  }) async {
+    final userId = UserSession.userId;
+    if (userId == null) return;
+    try {
+      final lang = context.read<LanguageProvider>();
+      await ApiClient.put('/users/$userId/settings', {
+        'alert_enabled': alertEnabled,
+        'sound_enabled': soundEnabled,
+        'language_code': lang.currentLang,
+      });
+    } catch (_) {
+      // 서버 실패해도 UI는 이미 업데이트됨
+    }
+  }
 
   void _showLanguagePicker(BuildContext context) {
     final lang = context.read<LanguageProvider>();
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -53,79 +100,101 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: Stack(
         children: [
-          ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            children: [
-              _SectionLabel(lang.t('language')),
-              const SizedBox(height: 8),
-              _SettingsCard(
-                children: [
-                  _TileWithChip(
-                    icon: Icons.language,
-                    iconBg: const Color(0xFFE8EAF6),
-                    iconColor: const Color(0xFF5C6BC0),
-                    title: lang.t('app_language'),
-                    subtitle: lang.t('alert_translation'),
-                    chipLabel: '${lang.currentFlag} ${lang.currentLangName}',
-                    onTap: () => _showLanguagePicker(context),
-                  ),
-                ],
-              ),
+          _isLoadingSettings
+              ? const Center(child: CircularProgressIndicator(color: kNavy))
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  children: [
+                    // ── LANGUAGE ──────────────────────────────
+                    _SectionLabel(lang.t('language')),
+                    const SizedBox(height: 8),
+                    _SettingsCard(
+                      children: [
+                        _TileWithChip(
+                          icon: Icons.language,
+                          iconBg: const Color(0xFFE8EAF6),
+                          iconColor: const Color(0xFF5C6BC0),
+                          title: lang.t('app_language'),
+                          subtitle: lang.t('alert_translation'),
+                          chipLabel: '${lang.currentFlag} ${lang.currentLangName}',
+                          onTap: () => _showLanguagePicker(context),
+                        ),
+                      ],
+                    ),
 
-              const SizedBox(height: 24),
-              _SectionLabel(lang.t('notifications')),
-              const SizedBox(height: 8),
-              _SettingsCard(
-                children: [
-                  _TileWithToggle(
-                    icon: Icons.notifications_outlined,
-                    iconBg: const Color(0xFFFFEBEE),
-                    iconColor: const Color(0xFFE53935),
-                    title: lang.t('emergency_alerts'),
-                    subtitle: lang.t('push_notifications'),
-                    value: _emergencyAlerts,
-                    onChanged: (v) => setState(() => _emergencyAlerts = v),
-                  ),
-                  const _Divider(),
-                  _TileWithToggle(
-                    icon: Icons.star_border,
-                    iconBg: const Color(0xFFFFF8E1),
-                    iconColor: const Color(0xFFFFB300),
-                    title: lang.t('alert_sound'),
-                    subtitle: lang.t('alarm_on_critical'),
-                    value: _alertSound,
-                    onChanged: (v) => setState(() => _alertSound = v),
-                  ),
-                  const _Divider(),
-                  _TileWithChip(
-                    icon: Icons.location_on_outlined,
-                    iconBg: const Color(0xFFE8F5E9),
-                    iconColor: const Color(0xFF43A047),
-                    title: lang.t('region'),
-                    subtitle: lang.t('my_alert_area'),
-                    chipLabel: 'Cheonan',
-                    onTap: () {},
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
-              _SectionLabel(lang.t('about')),
-              const SizedBox(height: 8),
-              _SettingsCard(
-                children: [
-                  _TileAbout(
-                    icon: Icons.info_outline,
-                    iconBg: const Color(0xFFE3F2FD),
-                    iconColor: const Color(0xFF1E88E5),
-                    title: lang.t('app_version'),
-                    subtitle: 'SafeKorea',
-                    trailing: 'v1.0.0',
-                  ),
-                ],
-              ),
-            ],
-          ),
+                    // ── NOTIFICATIONS ─────────────────────────
+                    _SectionLabel(lang.t('notifications')),
+                    const SizedBox(height: 8),
+                    _SettingsCard(
+                      children: [
+                        _TileWithToggle(
+                          icon: Icons.notifications_outlined,
+                          iconBg: const Color(0xFFFFEBEE),
+                          iconColor: const Color(0xFFE53935),
+                          title: lang.t('emergency_alerts'),
+                          subtitle: lang.t('push_notifications'),
+                          value: _emergencyAlerts,
+                          onChanged: (v) {
+                            setState(() => _emergencyAlerts = v);
+                            _saveSettings(
+                              alertEnabled: v,
+                              soundEnabled: _alertSound,
+                            );
+                          },
+                        ),
+                        const _Divider(),
+                        _TileWithToggle(
+                          icon: Icons.star_border,
+                          iconBg: const Color(0xFFFFF8E1),
+                          iconColor: const Color(0xFFFFB300),
+                          title: lang.t('alert_sound'),
+                          subtitle: lang.t('alarm_on_critical'),
+                          value: _alertSound,
+                          // Emergency alerts 꺼져있으면 sound도 비활성화
+                          onChanged: _emergencyAlerts
+                              ? (v) {
+                                  setState(() => _alertSound = v);
+                                  _saveSettings(
+                                    alertEnabled: _emergencyAlerts,
+                                    soundEnabled: v,
+                                  );
+                                }
+                              : null,
+                        ),
+                        const _Divider(),
+                        _TileWithChip(
+                          icon: Icons.location_on_outlined,
+                          iconBg: const Color(0xFFE8F5E9),
+                          iconColor: const Color(0xFF43A047),
+                          title: lang.t('region'),
+                          subtitle: lang.t('my_alert_area'),
+                          chipLabel: 'Cheonan',
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── ABOUT ─────────────────────────────────
+                    _SectionLabel(lang.t('about')),
+                    const SizedBox(height: 8),
+                    _SettingsCard(
+                      children: [
+                        _TileAbout(
+                          icon: Icons.info_outline,
+                          iconBg: const Color(0xFFE3F2FD),
+                          iconColor: const Color(0xFF1E88E5),
+                          title: lang.t('app_version'),
+                          subtitle: 'SafeKorea',
+                          trailing: 'v1.0.0',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
 
           // 번역 로딩 오버레이
           if (lang.isLoading)
@@ -154,7 +223,6 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 // ── 언어 선택 바텀시트 ────────────────────────────────────────
-
 class _LanguagePickerSheet extends StatelessWidget {
   const _LanguagePickerSheet();
 
@@ -162,44 +230,58 @@ class _LanguagePickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              24, 16, 24,
+              MediaQuery.of(context).viewInsets.bottom + 32,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Select Language',
+                  style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: kNavy,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...AppStrings.languageNames.entries.map((entry) {
+                  final isSelected = lang.currentLang == entry.key;
+                  return _LanguageTile(
+                    flag: AppStrings.languageFlags[entry.key] ?? '',
+                    name: entry.value,
+                    isSelected: isSelected,
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await lang.setLanguage(entry.key);
+                    },
+                  );
+                }),
+                const SizedBox(height: 16),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'Select Language',
-            style: TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold, color: kNavy,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...AppStrings.languageNames.entries.map((entry) {
-            final isSelected = lang.currentLang == entry.key;
-            return _LanguageTile(
-              flag: AppStrings.languageFlags[entry.key] ?? '',
-              name: entry.value,
-              isSelected: isSelected,
-              onTap: () async {
-                Navigator.pop(context);
-                await lang.setLanguage(entry.key);
-              },
-            );
-          }),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -257,7 +339,6 @@ class _LanguageTile extends StatelessWidget {
 }
 
 // ── 공통 위젯 ─────────────────────────────────────────────────
-
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -267,10 +348,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: kNavy,
-        letterSpacing: 1.2,
+        fontSize: 12, fontWeight: FontWeight.w700, color: kNavy, letterSpacing: 1.2,
       ),
     );
   }
@@ -317,12 +395,8 @@ class _IconBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      width: 40, height: 40,
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
       child: Icon(icon, color: color, size: 20),
     );
   }
@@ -335,7 +409,7 @@ class _TileWithToggle extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged; // nullable → null이면 비활성화
 
   const _TileWithToggle({
     required this.icon,
@@ -349,6 +423,8 @@ class _TileWithToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = onChanged == null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -360,14 +436,17 @@ class _TileWithToggle extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: kNavy)),
+                        color: isDisabled ? Colors.grey : kNavy)),
                 const SizedBox(height: 2),
                 Text(subtitle,
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF718096))),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDisabled
+                            ? Colors.grey.shade400
+                            : const Color(0xFF718096))),
               ],
             ),
           ),
@@ -419,32 +498,25 @@ class _TileWithChip extends StatelessWidget {
                 children: [
                   Text(title,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: kNavy)),
+                          fontSize: 15, fontWeight: FontWeight.bold, color: kNavy)),
                   const SizedBox(height: 2),
                   Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF718096))),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF718096))),
                 ],
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F2F5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(chipLabel,
                   style: const TextStyle(
-                      fontSize: 13,
-                      color: kNavy,
-                      fontWeight: FontWeight.w500)),
+                      fontSize: 13, color: kNavy, fontWeight: FontWeight.w500)),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right,
-                color: Color(0xFFCBD5E0), size: 20),
+            const Icon(Icons.chevron_right, color: Color(0xFFCBD5E0), size: 20),
           ],
         ),
       ),
@@ -483,19 +555,15 @@ class _TileAbout extends StatelessWidget {
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: kNavy)),
+                        fontSize: 15, fontWeight: FontWeight.bold, color: kNavy)),
                 const SizedBox(height: 2),
                 Text(subtitle,
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF718096))),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF718096))),
               ],
             ),
           ),
           Text(trailing,
-              style:
-                  const TextStyle(fontSize: 13, color: Color(0xFF9AA5B4))),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF9AA5B4))),
         ],
       ),
     );
