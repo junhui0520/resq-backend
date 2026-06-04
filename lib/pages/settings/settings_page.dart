@@ -565,6 +565,7 @@ class _TileAbout extends StatelessWidget {
           Text(trailing,
               style: const TextStyle(fontSize: 13, color: Color(0xFF9AA5B4))),
         ],
+        
       ),
     );
   }

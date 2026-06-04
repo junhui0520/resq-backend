@@ -46,6 +46,9 @@ class AppStrings {
     'safety_guide_sub': 'Earthquake, rain, fire tips',
     'recent_alerts': 'RECENT ALERTS',
     'no_recent_alerts': 'No recent alerts',
+    'alert_active': 'Active',
+    'alert_resolved': 'Resolved',
+    'alert_tap_to_translate': 'Tap to view full translation',
     // QR
     'emergency_info': 'Emergency Info',
     'scanned_from': 'Scanned from SafeKorea',
@@ -80,7 +83,7 @@ class AppStrings {
     'condition_hint': 'e.g. Asthma, Diabetes',
     'add_allergy': '+ Add Allergy',
     'add_condition': '+ Add Condition',
-    // Call 119 Screen
+    // Call 119
     'call_title': 'Emergency Call',
     'call_subtitle': 'Korea emergency numbers',
     'call_119_desc': 'Fire · Ambulance · Rescue',
@@ -94,18 +97,21 @@ class AppStrings {
     'nearby_hospitals_sub': 'Find emergency rooms near you',
     'call_tip_title': '💡 TIP — When calling 119',
     'call_tip_body': 'State your location first, then describe the emergency. Operators speak basic English. Stay calm and follow instructions.',
-    // Alert status
-    'alert_active': 'Active',
-    'alert_resolved': 'Resolved',
-    'alert_tap_to_translate': 'Tap to view full translation',
     // Embassy
     'embassy_search_hint': 'Search country...',
     'embassy_no_results': 'No results found',
+    // Alerts Page
+    'filter_all':        'All',
+    'filter_rain':       'Rain / Typhoon',
+    'filter_flood':      'Flood',
+    'filter_earthquake': 'Earthquake',
+    'filter_fire':       'Fire',
+    'filter_snow':       'Snow',
+    'filter_landslide':  'Landslide',
+    'filter_other':      'Other',
+    'alerts_loading':          'Loading alerts...',
+    'alerts_connection_error': 'Cannot connect to server.',
+    'alerts_empty':            'No alerts found.',
+    'retry':                   'Retry',
   };
 }
-// 위 파일 끝의 }; 앞에 아래 키들 추가하세요:
-// 'alert_active': 'Active',
-// 'alert_resolved': 'Resolved',
-// 'alert_tap_to_translate': 'Tap to view full translation',
-// 'embassy_search_hint': 'Search country...',
-// 'embassy_no_results': 'No results found',
