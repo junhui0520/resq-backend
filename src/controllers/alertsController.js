@@ -110,5 +110,42 @@ const getAlertById = async (req, res) => {
     res.status(500).json({ error: '서버 오류가 발생했습니다.' });
   }
 };
+// GET /api/alerts/recent
+const getRecentAlerts = async (req, res) => {
+  try {
+    const { lang = 'en', limit = 5 } = req.query;
 
-module.exports = { getAlerts, getCategories, getAlertById };
+    const [rows] = await pool.query(
+      `SELECT 
+        a.id,
+        a.region_code,
+        r.name_en AS region_name,
+        a.category_code,
+        ac.label_en AS category_label,
+        ac.color_hex,
+        a.severity_code,
+        sl.label_en AS severity_label,
+        at.title,
+        at.content,
+        a.status,
+        a.issued_at
+      FROM alerts a
+      JOIN regions r ON a.region_code = r.code
+      JOIN alert_categories ac ON a.category_code = ac.code
+      JOIN severity_levels sl ON a.severity_code = sl.code
+      LEFT JOIN alert_translations at ON a.id = at.alert_id AND at.language_code = ?
+      WHERE a.status = 'ACTIVE'
+      ORDER BY a.issued_at DESC
+      LIMIT ?`,
+      [lang, parseInt(limit)]
+    );
+
+    res.json({ alerts: rows });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+};
+
+module.exports = { getAlerts, getCategories, getAlertById, getRecentAlerts };

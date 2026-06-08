@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// ✅ 추가
+const { startDisasterScheduler } = require('./controllers/disasterController');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -20,9 +23,11 @@ app.use('/api/embassies', require('./routes/embassy'));
 app.use('/api/emergency-numbers', require('./routes/emergencyNumbers'));
 app.use('/api/safety-manuals', require('./routes/safetyManuals'));
 app.use('/api/regions', require('./routes/regions'));
+app.use('/api/disaster', require('./routes/disaster')); // ✅ 추가
 
 app.listen(PORT, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${PORT}`);
+  startDisasterScheduler(); // ✅ 추가
 });
 
 app.use((req, res, next) => {
