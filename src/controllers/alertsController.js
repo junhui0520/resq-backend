@@ -148,4 +148,58 @@ const getRecentAlerts = async (req, res) => {
   }
 };
 
-module.exports = { getAlerts, getCategories, getAlertById, getRecentAlerts };
+// GET /api/alerts/nearby
+const getNearbyAlerts = async (req, res) => {
+  try {
+    const { lat, lng, radius = 50, lang = 'en' } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'lat, lng 값이 필요합니다.' });
+    }
+
+    const [rows] = await pool.query(
+      `SELECT 
+        a.id,
+        a.region_code,
+        r.name_en AS region_name,
+        a.category_code,
+        ac.label_en AS category_label,
+        ac.color_hex,
+        a.severity_code,
+        sl.label_en AS severity_label,
+        at.title,
+        at.content,
+        at.action_guide,
+        a.status,
+        a.issued_at,
+        r.latitude AS region_lat,
+        r.longitude AS region_lng,
+        (
+          6371 * ACOS(
+            COS(RADIANS(?)) *
+            COS(RADIANS(r.latitude)) *
+            COS(RADIANS(r.longitude) - RADIANS(?)) +
+            SIN(RADIANS(?)) *
+            SIN(RADIANS(r.latitude))
+          )
+        ) AS distance
+      FROM alerts a
+      JOIN regions r ON a.region_code = r.code
+      JOIN alert_categories ac ON a.category_code = ac.code
+      JOIN severity_levels sl ON a.severity_code = sl.code
+      LEFT JOIN alert_translations at ON a.id = at.alert_id AND at.language_code = ?
+      WHERE a.status = 'ACTIVE'
+      HAVING distance <= ?
+      ORDER BY distance ASC`,
+      [Number(lat), Number(lng), Number(lat), lang, Number(radius)]
+    );
+
+    res.json({ success: true, count: rows.length, alerts: rows });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+};
+
+module.exports = { getAlerts, getCategories, getAlertById, getRecentAlerts, getNearbyAlerts};
