@@ -39,7 +39,7 @@ const getSafetyManuals = async (req, res) => {
 const getRegions = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT code, name_en, name_ko FROM regions WHERE code != 'KR' ORDER BY name_en ASC`
+      `SELECT code, name_en, name_ko, latitude, longitude FROM regions WHERE code != 'KR' ORDER BY name_en ASC`
     );
     res.json({ regions: rows });
 
